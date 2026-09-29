@@ -1,0 +1,22 @@
+# Compiled Binaries & Objects
+aishell
+*.o
+*.a
+*.so
+
+# Build & Temp Directories
+bin/
+build/
+.vscode/
+.idea/
+
+# Secret & Environment Files
+.env
+*.pem
+*.key
+
+# Temporary/Editor Files
+*~
+*.swp
+*.tmp
+.DS_Store
