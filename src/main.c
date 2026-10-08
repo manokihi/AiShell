@@ -4,16 +4,15 @@
 
 #include "cmd_spec.h"
 #include "commands/aisysinfo/cmd_aisysinfo.h"
-// Step 2-4 headers will be added here as we implement them:
-// #include "commands/aipwd/cmd_aipwd.h"
-// #include "commands/aicd/cmd_aicd.h"
-// #include "commands/ails/cmd_ails.h"
+#include "commands/aipwd/cmd_aipwd.h"
+#include "commands/aicd/cmd_aicd.h"
+#include "commands/ails/cmd_ails.h"
 
 static void register_all_builtin_commands(void) {
     register_aisysinfo_command();
-    // register_aipwd_command();
-    // register_aicd_command();
-    // register_ails_command();
+    register_aipwd_command();
+    register_aicd_command();
+    register_ails_command();
 }
 
 int main(int argc, char **argv) {

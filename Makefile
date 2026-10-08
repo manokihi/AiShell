@@ -25,20 +25,18 @@ CORE_OBJS     := $(patsubst $(SRC_DIR)/%.c, $(BUILD_DIR)/%.o, $(CORE_SRCS))
 
 # Command Module Sources (excluding standalone main wrappers)
 CMD_SRCS      := $(SRC_DIR)/commands/aisysinfo/cmd_aisysinfo.c
-# Step 2-4 command sources will be appended here as implemented:
-# CMD_SRCS    += $(SRC_DIR)/commands/aipwd/cmd_aipwd.c
-# CMD_SRCS    += $(SRC_DIR)/commands/aicd/cmd_aicd.c
-# CMD_SRCS    += $(SRC_DIR)/commands/ails/cmd_ails.c
+CMD_SRCS      += $(SRC_DIR)/commands/aipwd/cmd_aipwd.c
+CMD_SRCS      += $(SRC_DIR)/commands/aicd/cmd_aicd.c
+CMD_SRCS      += $(SRC_DIR)/commands/ails/cmd_ails.c
 
 CMD_OBJS      := $(patsubst $(SRC_DIR)/%.c, $(BUILD_DIR)/%.o, $(CMD_SRCS))
 
 # Standalone Executables
 ALL_BINS      := $(BIN_DIR)/aishell \
                  $(BIN_DIR)/aisysinfo
-# Step 2-4 binary targets will be appended here as implemented:
-# ALL_BINS    += $(BIN_DIR)/aipwd
-# ALL_BINS    += $(BIN_DIR)/aicd
-# ALL_BINS    += $(BIN_DIR)/ails
+ALL_BINS      += $(BIN_DIR)/aipwd
+ALL_BINS      += $(BIN_DIR)/aicd
+ALL_BINS      += $(BIN_DIR)/ails
 
 # Default Target
 .PHONY: all
@@ -60,12 +58,26 @@ $(BIN_DIR)/aisysinfo: $(BUILD_DIR)/commands/aisysinfo/aisysinfo_main.o \
 	@mkdir -p $(BIN_DIR)
 	$(CC) $(CFLAGS) $^ -o $@ $(LDFLAGS)
 
-# Placeholder templates for Step 2-4 standalone binaries:
-# $(BIN_DIR)/aipwd: $(BUILD_DIR)/commands/aipwd/aipwd_main.o \
-#                    $(BUILD_DIR)/commands/aipwd/cmd_aipwd.o \
-#                    $(CORE_OBJS) $(TP_OBJ)
-# 	@mkdir -p $(BIN_DIR)
-# 	$(CC) $(CFLAGS) $^ -o $@ $(LDFLAGS)
+# Standalone aipwd
+$(BIN_DIR)/aipwd: $(BUILD_DIR)/commands/aipwd/aipwd_main.o \
+                  $(BUILD_DIR)/commands/aipwd/cmd_aipwd.o \
+                  $(CORE_OBJS) $(TP_OBJ)
+	@mkdir -p $(BIN_DIR)
+	$(CC) $(CFLAGS) $^ -o $@ $(LDFLAGS)
+
+# Standalone: aicd
+$(BIN_DIR)/aicd: $(BUILD_DIR)/commands/aicd/aicd_main.o \
+				 $(BUILD_DIR)/commands/aicd/cmd_aicd.o \
+				 $(CORE_OBJS) $(TP_OBJ)
+	@mkdir -p $(BIN_DIR)
+	$(CC) $(CFLAGS) $^ -o $@ $(LDFLAGS)
+
+# Standalone: ails
+$(BIN_DIR)/ails: $(BUILD_DIR)/commands/ails/ails_main.o \
+                 $(BUILD_DIR)/commands/ails/cmd_ails.o \
+                 $(CORE_OBJS) $(TP_OBJ)
+	@mkdir -p $(BIN_DIR)
+	$(CC) $(CFLAGS) $^ -o $@ $(LDFLAGS)
 
 # ==============================================================================
 # Object Compilation Rules
@@ -91,7 +103,5 @@ clean:
 
 .PHONY: test
 test: all
-	@echo "Running Step 1 verification checks..."
-	./$(BIN_DIR)/aisysinfo --version
-	./$(BIN_DIR)/aisysinfo --json
-	./$(BIN_DIR)/aisysinfo -h
+	@echo "Running tests..."
+	@./scripts/test.sh
