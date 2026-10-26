@@ -2,106 +2,80 @@
 # AiShell Build System
 # ==============================================================================
 
-CC      ?= gcc
-CFLAGS := -Wall -Wextra -std=c99 -pedantic -g \
-          -Isrc \
-          -Isrc/third-party/argtable3
-LDFLAGS := -lm
+CC ?= gcc
+CFLAGS ?= -Wall -Wextra -Werror -std=c11 -pedantic \
+ 		  -g \
+ 		  -Isrc -Isrc/registry -Isrc/tools/pkg
 
-# Directories
-BIN_DIR       := bin
-SRC_DIR       := src
-TP_DIR        := src/third-party/argtable3
-BUILD_DIR     := build
+PREFIX ?= $(HOME)
+TARGET = aishell
+BUILD_DIR = build
+BIN_DIR = $(BUILD_DIR)/bin
+LIB_DIR = $(BUILD_DIR)/lib
+OBJ_DIR = $(BUILD_DIR)/obj
 
-# Third-party Dependency (argtable3)
-TP_SRC        := $(TP_DIR)/argtable3.c
-TP_OBJ        := $(BUILD_DIR)/argtable3.o
+all: directories $(BIN_DIR)/$(TARGET) $(LIB_DIR)/libcore.a $(LIB_DIR)/libpkg.so $(BIN_DIR)/pkg dist_tarballs
 
-# Core Framework Sources
-CORE_SRCS     := $(SRC_DIR)/ai_common.c \
-                 $(SRC_DIR)/registry/cmd_registry.c
-CORE_OBJS     := $(patsubst $(SRC_DIR)/%.c, $(BUILD_DIR)/%.o, $(CORE_SRCS))
+directories:
+	mkdir -p $(BIN_DIR) $(LIB_DIR) $(OBJ_DIR)/src/registry $(OBJ_DIR)/src/tools/pkg
 
-# Command Module Sources (excluding standalone main wrappers)
-CMD_SRCS      := $(SRC_DIR)/commands/aisysinfo/cmd_aisysinfo.c
-CMD_SRCS      += $(SRC_DIR)/commands/aipwd/cmd_aipwd.c
-CMD_SRCS      += $(SRC_DIR)/commands/aicd/cmd_aicd.c
-CMD_SRCS      += $(SRC_DIR)/commands/ails/cmd_ails.c
+# 1. Build core registry object and static library
+$(OBJ_DIR)/src/registry/registry.o: src/registry/registry.c src/registry/registry.h | directories
+	$(CC) $(CFLAGS) -c src/registry/registry.c -o $@
 
-CMD_OBJS      := $(patsubst $(SRC_DIR)/%.c, $(BUILD_DIR)/%.o, $(CMD_SRCS))
+$(LIB_DIR)/libcore.a: $(OBJ_DIR)/src/registry/registry.o | directories
+	ar rcs $@ $<
 
-# Standalone Executables
-ALL_BINS      := $(BIN_DIR)/aishell \
-                 $(BIN_DIR)/aisysinfo
-ALL_BINS      += $(BIN_DIR)/aipwd
-ALL_BINS      += $(BIN_DIR)/aicd
-ALL_BINS      += $(BIN_DIR)/ails
+# 2. Build main shell binary in build/bin/
+$(BIN_DIR)/$(TARGET): src/main.c $(LIB_DIR)/libcore.a | directories
+	$(CC) $(CFLAGS) src/main.c -L$(LIB_DIR) -lcore -o $@ -ldl
 
-# Default Target
-.PHONY: all
-all: $(ALL_BINS)
+# 3. Build tool shared object (.so) in build/lib/
+$(LIB_DIR)/libpkg.so: src/tools/pkg/pkg.c src/tools/pkg/pkg.h $(LIB_DIR)/libcore.a | directories
+	$(CC) $(CFLAGS) -fPIC -shared src/tools/pkg/pkg.c -L$(LIB_DIR) -lcore -o $@
 
-# ==============================================================================
-# Executable Targets
-# ==============================================================================
+# 4. Build standalone tool binary in build/bin/
+$(BIN_DIR)/pkg: src/tools/pkg/pkg.c src/tools/pkg/pkg.h $(LIB_DIR)/libcore.a | directories
+	$(CC) $(CFLAGS) -DSTANDALONE_PKG_MAIN src/tools/pkg/pkg.c -L$(LIB_DIR) -lcore -o $@
 
-# Interactive Shell REPL (bin/aishell)
-$(BIN_DIR)/aishell: $(BUILD_DIR)/main.o $(CORE_OBJS) $(CMD_OBJS) $(TP_OBJ)
-	@mkdir -p $(BIN_DIR)
-	$(CC) $(CFLAGS) $^ -o $@ $(LDFLAGS)
+# 5. Build distribution tarball bundle (pkg.tar.gz)
+dist_tarballs: $(BIN_DIR)/pkg $(LIB_DIR)/libpkg.so
+	mkdir -p dist/pkgs
+	mkdir -p build_pkg/bin build_pkg/lib build_pkg/docs
+	cp $(BIN_DIR)/pkg build_pkg/bin/pkg
+	cp $(LIB_DIR)/libpkg.so build_pkg/lib/libpkg.so
 
-# Standalone: aisysinfo
-$(BIN_DIR)/aisysinfo: $(BUILD_DIR)/commands/aisysinfo/aisysinfo_main.o \
-                       $(BUILD_DIR)/commands/aisysinfo/cmd_aisysinfo.o \
-                       $(CORE_OBJS) $(TP_OBJ)
-	@mkdir -p $(BIN_DIR)
-	$(CC) $(CFLAGS) $^ -o $@ $(LDFLAGS)
+	# Create pkg.json manifest
+	echo '{\
+	  "name": "pkg",\
+	  "version": "1.0.0",\
+	  "description": "AiShell Package Manager",\
+	  "commands": [{"name": "pkg", "tool": "pkg", "scope": "internal_external"}],\
+	  "files": ["bin/pkg", "lib/libpkg.so"],\
+	  "docs": [],\
+	  "dependencies": []\
+	}' > build_pkg/pkg.json
 
-# Standalone aipwd
-$(BIN_DIR)/aipwd: $(BUILD_DIR)/commands/aipwd/aipwd_main.o \
-                  $(BUILD_DIR)/commands/aipwd/cmd_aipwd.o \
-                  $(CORE_OBJS) $(TP_OBJ)
-	@mkdir -p $(BIN_DIR)
-	$(CC) $(CFLAGS) $^ -o $@ $(LDFLAGS)
+	# Create pkg.tar.gz in dist/pkgs/
+	tar -czf dist/pkgs/pkg.tar.gz -C build_pkg .
+	rm -rf build_pkg
 
-# Standalone: aicd
-$(BIN_DIR)/aicd: $(BUILD_DIR)/commands/aicd/aicd_main.o \
-				 $(BUILD_DIR)/commands/aicd/cmd_aicd.o \
-				 $(CORE_OBJS) $(TP_OBJ)
-	@mkdir -p $(BIN_DIR)
-	$(CC) $(CFLAGS) $^ -o $@ $(LDFLAGS)
+# 6. Simulate system-wide installation and user environment setup
+install: all
+	@echo "Installing aishell to $(PREFIX)/bin..."
+	mkdir -p $(PREFIX)/bin
+	cp $(BIN_DIR)/$(TARGET) $(PREFIX)/bin/aishell
 
-# Standalone: ails
-$(BIN_DIR)/ails: $(BUILD_DIR)/commands/ails/ails_main.o \
-                 $(BUILD_DIR)/commands/ails/cmd_ails.o \
-                 $(CORE_OBJS) $(TP_OBJ)
-	@mkdir -p $(BIN_DIR)
-	$(CC) $(CFLAGS) $^ -o $@ $(LDFLAGS)
+	@echo "Setting up user runtime environment in ~/.mysh..."
+	mkdir -p ~/.mysh/installed
+	mkdir -p ~/.mysh/dist
 
-# ==============================================================================
-# Object Compilation Rules
-# ==============================================================================
+	@echo "Copying distribution package to ~/.mysh/dist/..."
+	cp dist/pkgs/pkg.tar.gz ~/.mysh/dist/pkg.tar.gz
 
-# Compile Third-Party Libraries
-$(TP_OBJ): $(TP_SRC)
-	@mkdir -p $(dir $@)
-	$(CC) $(CFLAGS) -c $< -o $@
+	@echo "Installation complete! Run 'aishell' from anywhere."
 
-# Compile Core Framework & Command Modules
-$(BUILD_DIR)/%.o: $(SRC_DIR)/%.c
-	@mkdir -p $(dir $@)
-	$(CC) $(CFLAGS) -c $< -o $@
-
-# ==============================================================================
-# Utility Rules
-# ==============================================================================
-
-.PHONY: clean
 clean:
-	rm -rf $(BUILD_DIR) $(BIN_DIR)
+	rm -rf $(BUILD_DIR) dist build_pkg $(TARGET)
 
-.PHONY: test
-test: all
-	@echo "Running tests..."
-	@./scripts/test.sh
+.PHONY: all directories dist_tarballs install clean

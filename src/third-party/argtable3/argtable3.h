@@ -225,7 +225,7 @@ typedef void(arg_dstr_freefn)(char* buf);
  * user-defined context pointer.
  *
  * This function pointer is primarily intended for developers who want to
- * implement custom sub-commands and register them with Argtable3. The handler
+ * implement custom sub-tools and register them with Argtable3. The handler
  * should return 0 on success, or a nonzero error code on failure.
  *
  * @param argc The number of command-line arguments for the sub-command.
@@ -1968,10 +1968,10 @@ ARG_EXTERN char* arg_dstr_cstr(arg_dstr_t ds);
  *
  * The `arg_cmd_init` function sets up the internal data structures required for
  * sub-command support in Argtable3. It must be called before registering,
- * dispatching, or iterating over sub-commands in your application.
+ * dispatching, or iterating over sub-tools in your application.
  *
  * This function is typically called once at program startup, before any
- * sub-commands are registered. It ensures that the sub-command API is ready for
+ * sub-tools are registered. It ensures that the sub-command API is ready for
  * use. After initialization, you can use functions such as `arg_cmd_register`,
  * `arg_cmd_dispatch`, and `arg_cmd_itr_create`.
  *
@@ -1981,7 +1981,7 @@ ARG_EXTERN char* arg_dstr_cstr(arg_dstr_t ds);
  * Example usage:
  * ```
  * arg_cmd_init();
- * // Register and use sub-commands...
+ * // Register and use sub-tools...
  * arg_cmd_uninit();
  * ```
  *
@@ -1995,7 +1995,7 @@ ARG_EXTERN void arg_cmd_init(void);
  * The `arg_cmd_uninit` function deinitializes the sub-command infrastructure,
  * freeing any memory or resources allocated for sub-command registration,
  * lookup, and iteration. After calling this function, all registered
- * sub-commands are removed, and the sub-command API can no longer be used until
+ * sub-tools are removed, and the sub-command API can no longer be used until
  * `arg_cmd_init` is called again.
  *
  * This function should be called at program shutdown or when you no longer need
@@ -2004,7 +2004,7 @@ ARG_EXTERN void arg_cmd_init(void);
  * Example usage:
  * ```
  * arg_cmd_init();
- * // Register and use sub-commands...
+ * // Register and use sub-tools...
  * arg_cmd_uninit();
  * ```
  *
@@ -2018,7 +2018,7 @@ ARG_EXTERN void arg_cmd_uninit(void);
  * The `arg_cmd_register` function adds a sub-command to the application's
  * sub-command table, associating it with a handler function, a description, and
  * an optional context pointer. This enables applications to support multiple
- * commands (such as `git` or `docker`-style interfaces), where each sub-command
+ * tools (such as `git` or `docker`-style interfaces), where each sub-command
  * can have its own logic and help text.
  *
  * The handler function (`proc`) will be called when the sub-command is
@@ -2056,7 +2056,7 @@ ARG_EXTERN void arg_cmd_register(const char* name, arg_cmdfn proc, const char* d
  * help output.
  *
  * This function is useful for applications that support dynamic registration
- * and removal of sub-commands at runtime, such as plugin-based tools or
+ * and removal of sub-tools at runtime, such as plugin-based tools or
  * interactive shells.
  *
  * If the sub-command with the given name does not exist, the function has no
@@ -2084,7 +2084,7 @@ ARG_EXTERN void arg_cmd_unregister(const char* name);
  * arguments and a dynamic string buffer for output or error messages.
  *
  * This function is typically used in applications that support multiple
- * sub-commands (such as `git` or `docker`-style interfaces), allowing you to
+ * sub-tools (such as `git` or `docker`-style interfaces), allowing you to
  * delegate command-line processing to the appropriate handler based on the
  * user's input.
  *
@@ -2094,7 +2094,7 @@ ARG_EXTERN void arg_cmd_unregister(const char* name);
  *
  * Example usage:
  * ```
- * // Register sub-commands
+ * // Register sub-tools
  * arg_cmd_register("list", list_cmd, "List items", NULL);
  * arg_cmd_register("add", add_cmd, "Add an item", NULL);
  *
@@ -2121,24 +2121,24 @@ ARG_EXTERN void arg_cmd_unregister(const char* name);
 ARG_EXTERN int arg_cmd_dispatch(const char* name, int argc, char* argv[], arg_dstr_t res);
 
 /**
- * Returns the number of registered sub-commands.
+ * Returns the number of registered sub-tools.
  *
- * The `arg_cmd_count` function returns the total number of sub-commands
+ * The `arg_cmd_count` function returns the total number of sub-tools
  * currently registered in the application. This is useful for applications that
- * support multiple commands (such as `git` or `docker`-style interfaces) and
- * need to enumerate, display, or manage the available sub-commands.
+ * support multiple tools (such as `git` or `docker`-style interfaces) and
+ * need to enumerate, display, or manage the available sub-tools.
  *
  * You can use this function to determine the size of the sub-command table,
- * iterate over all registered sub-commands, or display a summary of available
- * commands to the user.
+ * iterate over all registered sub-tools, or display a summary of available
+ * tools to the user.
  *
  * Example usage:
  * ```
  * unsigned int count = arg_cmd_count();
- * printf("There are %u sub-commands registered.\n", count);
+ * printf("There are %u sub-tools registered.\n", count);
  * ```
  *
- * @return The number of sub-commands currently registered.
+ * @return The number of sub-tools currently registered.
  *
  * @see arg_cmd_register, arg_cmd_info, arg_cmd_itr_create
  */
@@ -2153,8 +2153,8 @@ ARG_EXTERN unsigned int arg_cmd_count(void);
  * function, and context pointer.
  *
  * This function is useful for querying details about a specific sub-command,
- * such as when generating help output, dispatching commands, or inspecting
- * available sub-commands in applications that support multiple commands (e.g.,
+ * such as when generating help output, dispatching tools, or inspecting
+ * available sub-tools in applications that support multiple tools (e.g.,
  * `git` or `docker`-style interfaces).
  *
  * If the sub-command is not found, the function returns `NULL`.
@@ -2176,13 +2176,13 @@ ARG_EXTERN unsigned int arg_cmd_count(void);
 ARG_EXTERN arg_cmd_info_t* arg_cmd_info(const char* name);
 
 /**
- * Creates a new sub-command iterator for traversing registered sub-commands.
+ * Creates a new sub-command iterator for traversing registered sub-tools.
  *
  * The `arg_cmd_itr_create` function allocates and initializes a sub-command
- * iterator, which can be used to traverse all registered sub-commands in the
+ * iterator, which can be used to traverse all registered sub-tools in the
  * application. This iterator provides a convenient way to enumerate, search, or
- * process sub-commands, especially in applications that support multiple
- * commands (such as `git` or `docker`-style interfaces).
+ * process sub-tools, especially in applications that support multiple
+ * tools (such as `git` or `docker`-style interfaces).
  *
  * After creating the iterator, you can use functions like `arg_cmd_itr_advance`
  * to move through the sub-command table, and `arg_cmd_itr_key` or
@@ -2215,13 +2215,13 @@ ARG_EXTERN arg_cmd_itr_t arg_cmd_itr_create(void);
  * calling this function, the iterator is no longer valid and must not be used.
  *
  * This function should be called when you are finished iterating over
- * sub-commands to prevent memory leaks and ensure proper cleanup.
+ * sub-tools to prevent memory leaks and ensure proper cleanup.
  *
  * Example usage:
  * ```
  * arg_cmd_itr_t itr = arg_cmd_itr_create();
  * while (arg_cmd_itr_advance(itr)) {
- *     // process sub-commands
+ *     // process sub-tools
  * }
  * arg_cmd_itr_destroy(itr);
  * ```
@@ -2238,8 +2238,8 @@ ARG_EXTERN void arg_cmd_itr_destroy(arg_cmd_itr_t itr);
  *
  * The `arg_cmd_itr_advance` function moves the sub-command iterator to the next
  * sub-command in the table. This allows you to iterate over all registered
- * sub-commands in your application, enabling tasks such as listing available
- * commands, generating help output, or performing batch operations.
+ * sub-tools in your application, enabling tasks such as listing available
+ * tools, generating help output, or performing batch operations.
  *
  * This function is typically used in a loop, where you repeatedly call
  * `arg_cmd_itr_advance` and retrieve the current sub-command's key or value
@@ -2270,11 +2270,11 @@ ARG_EXTERN int arg_cmd_itr_advance(arg_cmd_itr_t itr);
  * sub-command name as a null-terminated string) at the current position of the
  * sub-command iterator. This allows you to access the identifier for the
  * sub-command currently referenced by the iterator, which is useful for
- * displaying, comparing, or processing sub-commands in applications that
- * support multiple commands.
+ * displaying, comparing, or processing sub-tools in applications that
+ * support multiple tools.
  *
  * This function is typically used when iterating over all registered
- * sub-commands or after searching for a specific sub-command using the
+ * sub-tools or after searching for a specific sub-command using the
  * iterator.
  *
  * Example usage:
@@ -2337,9 +2337,9 @@ ARG_EXTERN arg_cmd_info_t* arg_cmd_itr_value(arg_cmd_itr_t itr);
  * the found entry.
  *
  * This function is useful for efficiently locating a specific sub-command in
- * applications that support multiple commands (such as `git` or `docker`-style
+ * applications that support multiple tools (such as `git` or `docker`-style
  * interfaces), especially when iterating over or managing a dynamic set of
- * sub-commands.
+ * sub-tools.
  *
  * Example usage:
  * ```

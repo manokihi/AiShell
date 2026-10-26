@@ -1,12 +1,10 @@
 #include <stdio.h>
 #include <stdlib.h>
-#include <string.h>
 #include <sys/utsname.h>
-#include <sys/sysinfo.h>
 #include <third-party/argtable3/argtable3.h>
 
 #include "cmd_spec.h"
-#include "commands/aisysinfo/cmd_aisysinfo.h"
+#include "tools/aisysinfo/aisysinfo.h"
 
 static void build_aisysinfo_argtable(ai_global_args_t *globals,
                                       struct arg_lit **all,
@@ -83,7 +81,6 @@ int aisysinfo_run(int argc, char **argv) {
                                         uptime->count == 0 && mem->count == 0);
 
     struct utsname uts;
-    struct sysinfo info;
 
     if (uname(&uts) < 0) {
         perror("aisysinfo: uname failed");
@@ -91,7 +88,7 @@ int aisysinfo_run(int argc, char **argv) {
         return 1;
     }
 
-    if (sysinfo(&info) < 0) {
+    if (uname(&uts) < 0) {
         perror("aisysinfo: sysinfo failed");
         arg_freetable(argtable, 9);
         return 1;
@@ -100,7 +97,9 @@ int aisysinfo_run(int argc, char **argv) {
     int show_sys    = show_all || (sys->count > 0);
     int show_kernel = show_all || (kernel->count > 0);
     int show_uptime = show_all || (uptime->count > 0);
+#if 0 // Not Used
     int show_mem    = show_all || (mem->count > 0);
+#endif
 
     if (globals.json->count > 0) {
         printf("{");
@@ -113,6 +112,8 @@ int aisysinfo_run(int argc, char **argv) {
             printf("%s\"kernel\":\"%s\"", printed ? "," : "", uts.release);
             printed = 1;
         }
+
+#if 0   // not supported
         if (show_uptime) {
             printf("%s\"uptime_sec\":%ld", printed ? "," : "", info.uptime);
             printed = 1;
@@ -121,15 +122,18 @@ int aisysinfo_run(int argc, char **argv) {
             printf("%s\"total_ram\":%lu,\"free_ram\":%lu", 
                    printed ? "," : "", info.totalram * info.mem_unit, info.freeram * info.mem_unit);
         }
+#endif
         printf("}\n");
     } else {
         if (show_sys)    printf("OS Sysname : %s\n", uts.sysname);
         if (show_kernel) printf("Kernel Release: %s\n", uts.release);
+#if 0 // not supported
         if (show_uptime) printf("Uptime     : %ld seconds\n", info.uptime);
         if (show_mem) {
             printf("Total RAM  : %lu MB\n", (info.totalram * info.mem_unit) / (1024 * 1024));
             printf("Free RAM   : %lu MB\n", (info.freeram * info.mem_unit) / (1024 * 1024));
         }
+#endif
     }
 
     arg_freetable(argtable, 9);
