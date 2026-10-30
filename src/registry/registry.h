@@ -3,6 +3,8 @@
 
 #include <stdio.h>
 
+#define MAX_LINE_LENGTH (1024)
+
 /**
  * Command specification structure defining a command module's identity,
  * metadata, execution entry point, and usage help formatter.

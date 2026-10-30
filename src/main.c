@@ -4,7 +4,6 @@
 #include <string.h>
 #include <unistd.h>
 
-#include "main.h"
 #include "registry/registry.h"
 
 static int check_and_bootstrap_pkg(void) {

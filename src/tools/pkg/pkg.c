@@ -17,7 +17,7 @@ int main(int argc, char **argv) {
 #endif
 
 static void ensure_dir(const char *path) {
-    char cmd[1024];
+    char cmd[MAX_LINE_LENGTH];
     snprintf(cmd, sizeof(cmd), "mkdir -p \"%s\"", path);
     int rc = system(cmd);
     (void)rc;
@@ -82,7 +82,7 @@ static int pkg_install(int argc, char **argv) {
         return 1;
     }
 
-    char mysh_dir[1024], pkgs_dir[1024], bin_dir[1024], db_path[1024];
+    char mysh_dir[MAX_LINE_LENGTH], pkgs_dir[MAX_LINE_LENGTH], bin_dir[MAX_LINE_LENGTH], db_path[MAX_LINE_LENGTH];
     snprintf(mysh_dir, sizeof(mysh_dir), "%s/.mysh", home);
     snprintf(pkgs_dir, sizeof(pkgs_dir), "%s/pkgs", mysh_dir);
     snprintf(bin_dir, sizeof(bin_dir), "%s/bin", mysh_dir);
@@ -91,21 +91,21 @@ static int pkg_install(int argc, char **argv) {
     ensure_dir(pkgs_dir);
     ensure_dir(bin_dir);
 
-    char temp_extract_dir[1024];
+    char temp_extract_dir[MAX_LINE_LENGTH];
     snprintf(temp_extract_dir, sizeof(temp_extract_dir), "/tmp/aishell_install_XXXXXX");
     if (mkdtemp(temp_extract_dir) == NULL) {
         perror("Failed to create temp directory");
         return 1;
     }
 
-    char extract_cmd[2048];
+    char extract_cmd[MAX_LINE_LENGTH];
     snprintf(extract_cmd, sizeof(extract_cmd), "tar -xzf \"%s\" -C \"%s\"", tar_file, temp_extract_dir);
     if (system(extract_cmd) != 0) {
         fprintf(stderr, "Error: Failed to extract package tarball %s\n", tar_file);
         return 1;
     }
 
-    char json_path[2048];
+    char json_path[MAX_LINE_LENGTH];
     snprintf(json_path, sizeof(json_path), "%s/pkg.json", temp_extract_dir);
     FILE *f = fopen(json_path, "r");
     if (!f) {
@@ -114,18 +114,18 @@ static int pkg_install(int argc, char **argv) {
     }
     fclose(f);
 
-    char pkg_name[256] = "pkg";
-    char pkg_version[256] = "1.0.0";
+    char pkg_name[MAX_LINE_LENGTH] = "pkg";
+    char pkg_version[MAX_LINE_LENGTH] = "1.0.0";
 
-    char final_pkg_dir[2048];
+    char final_pkg_dir[MAX_LINE_LENGTH];
     snprintf(final_pkg_dir, sizeof(final_pkg_dir), "%s/%s-%s", pkgs_dir, pkg_name, pkg_version);
 
-    char move_cmd[4096];
+    char move_cmd[MAX_LINE_LENGTH];
     snprintf(move_cmd, sizeof(move_cmd), "rm -rf \"%s\" && mkdir -p \"%s\" && cp -R \"%s/.\" \"%s/\"",
              final_pkg_dir, final_pkg_dir, temp_extract_dir, final_pkg_dir);
     system(move_cmd);
 
-    char symlink_cmd[4096];
+    char symlink_cmd[MAX_LINE_LENGTH];
     snprintf(symlink_cmd, sizeof(symlink_cmd), "ln -sf \"%s/bin/pkg\" \"%s/pkg\"", final_pkg_dir, bin_dir);
     system(symlink_cmd);
 
@@ -135,7 +135,7 @@ static int pkg_install(int argc, char **argv) {
         fclose(db);
     }
 
-    char cleanup_cmd[2048];
+    char cleanup_cmd[MAX_LINE_LENGTH    ];
     snprintf(cleanup_cmd, sizeof(cleanup_cmd), "rm -rf \"%s\"", temp_extract_dir);
     system(cleanup_cmd);
 
@@ -149,7 +149,7 @@ static int pkg_list(int argc, char **argv) {
     const char *home = getenv("HOME");
     if (!home) return 1;
 
-    char db_path[1024];
+    char db_path[MAX_LINE_LENGTH];
     snprintf(db_path, sizeof(db_path), "%s/.mysh/pkgdb.txt", home);
 
     FILE *db = fopen(db_path, "r");
@@ -190,13 +190,13 @@ static int pkg_remove(int argc, char **argv) {
     const char *home = getenv("HOME");
     if (!home) return 1;
 
-    char pkgs_dir[1024], bin_dir[1024];
+    char pkgs_dir[MAX_LINE_LENGTH], bin_dir[MAX_LINE_LENGTH];
     snprintf(pkgs_dir, sizeof(pkgs_dir), "%s/.mysh/pkgs/%s-1.0.0", home, name);
     snprintf(bin_dir, sizeof(bin_dir), "%s/.mysh/bin/%s", home, name);
 
     printf("Removing package '%s' and cleaning up owned files...\n", name);
 
-    char rm_cmd[2048];
+    char rm_cmd[MAX_LINE_LENGTH];
     snprintf(rm_cmd, sizeof(rm_cmd), "rm -rf \"%s\" \"%s\"", pkgs_dir, bin_dir);
     system(rm_cmd);
 
@@ -240,3 +240,10 @@ cmd_spec_t cmd_pkg_spec = {
 void register_pkg_command(void) {
     register_command(&cmd_pkg_spec);
 }
+
+#ifdef STANDALONE_PKG_MAIN
+int main(int argc, char *argv[]) {
+    // Invoke the package manager's primary run entrypoint
+    return pkg_run(argc, argv);
+}
+#endif
